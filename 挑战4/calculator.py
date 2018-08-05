@@ -4,9 +4,9 @@ import csv
 import sys
 from multiprocessing import Process, Queue
 
-queue_config = Queue()
+
 queue_userdata = Queue()
-queue_all_info = Queue()
+queue_info = Queue()
 
 class Args(object):
     def __init__(self, args):
@@ -24,7 +24,7 @@ class Config(object):
     def __init__(self, configFile):
         self.configFile = configFile
         self.config = self._read_config()
-
+        #queue_config.put(self.config)
     def _read_config(self):
         config = {}
         with open(self.configFile) as file:
@@ -35,7 +35,7 @@ class Config(object):
                 else:
                     data = data.split("=")
                     config[data[0].strip()] = float(data[1].strip())
-        queue_config.put(config)
+        return config
         
 
 class UserData(object):
@@ -52,14 +52,15 @@ class UserData(object):
                     continue
                 else:
                     userinfo = tuple(line.strip().split(','))
-                    userdata.append(userinfo)
-        queue_userdata.put(userdata)
+                    queue_userdata.put(userinfo)
+                    #userdata.append(userinfo)
+#        queue_userdata.put(userdata)
 
 
 class IncomeTaxCalculator(object):
-    def __init__(self):
+    def __init__(self, config):
         self.userdata = queue_userdata.get()
-        self.config = queue_config.get()
+        self.config = config
         self.calc_for_all_userdata()
 
     def _get_insu(self, wage):
@@ -110,12 +111,13 @@ class IncomeTaxCalculator(object):
             tax = float(self._get_tax(wage, insu))
             #print("{0},{1:.0f},{2:.2f},{3:.2f},{4:.2f}".format(userid, wage, insu, tax, (wage - insu - tax)))
             info = tuple("{0},{1:.0f},{2:.2f},{3:.2f},{4:.2f}".format(userid, wage, insu, tax, (wage - insu -tax)).split(','))
-            all_info.append(info)
-        queue_all_info.put(all_info)
+            queue_info.put(info)
+            #all_info.append(info)
+        #queue_all_info.put(all_info)
 
 class Write_info():
     def __init__(self, outfile):
-        self.info = queue_all_info.get()
+        self.info = queue_info.get()
         self.write_info_to_file()
 
     def write_info_to_file(self):
@@ -129,10 +131,13 @@ if __name__ == "__main__":
     configfile = args.configfile
     userdata = args.userdatafile
     outfile = args.outfile
+    
+    cfg = Config(configfile)
+    config = cfg.config
 
     P_config = Process(target=Config, args=(configfile, )).start()
     P_userdata = Process(target=UserData, args=(userdata,)).start()
-    P_income = Process(target=IncomeTaxCalculator).start()
+    P_income = Process(target=IncomeTaxCalculator, args=(config, )).start()
     P_write_info = Process(target=Write_info, args=(outfile, )).start()
 
 
