@@ -24,7 +24,7 @@ class Config(object):
     def __init__(self, configFile):
         self.configFile = configFile
         self.config = self._read_config()
-        #queue_config.put(self.config)
+
     def _read_config(self):
         config = {}
         with open(self.configFile) as file:
@@ -52,16 +52,17 @@ class UserData(object):
                     continue
                 else:
                     userinfo = tuple(line.strip().split(','))
+                    # print(userinfo)
                     queue_userdata.put(userinfo)
-                    #userdata.append(userinfo)
-#        queue_userdata.put(userdata)
+                    userdata.append(userinfo)
+            # print("put done!!")
+            # print(userdata)
 
 
 class IncomeTaxCalculator(object):
     def __init__(self, config):
-        self.userdata = queue_userdata.get()
         self.config = config
-        self.calc_for_all_userdata()
+        self.run()
 
     def _get_insu(self, wage):
         all_sum = sum(self.config.values()) - self.config["JiShuL"] -self.config["JiShuH"]
@@ -103,28 +104,44 @@ class IncomeTaxCalculator(object):
 
 
     def calc_for_all_userdata(self):
-        all_info = []
-        for user in self.userdata:
-            userid = user[0]
-            wage = float(user[1])
-            insu = float(self._get_insu(wage))
-            tax = float(self._get_tax(wage, insu))
-            #print("{0},{1:.0f},{2:.2f},{3:.2f},{4:.2f}".format(userid, wage, insu, tax, (wage - insu - tax)))
-            info = tuple("{0},{1:.0f},{2:.2f},{3:.2f},{4:.2f}".format(userid, wage, insu, tax, (wage - insu -tax)).split(','))
-            queue_info.put(info)
-            #all_info.append(info)
-        #queue_all_info.put(all_info)
+        all_data = []
+        try:
+            userdata = queue_userdata.get()
+        except Exception as e:
+            print(e + "get end")
+
+        userid = userdata[0]
+        wage = float(userdata[1])
+        insu = float(self._get_insu(wage))
+        tax = float(self._get_tax(wage, insu))
+        info = list("{0},{1:.0f},{2:.2f},{3:.2f},{4:.2f}".format(userid, wage, insu, tax, (wage - insu -tax)).split(','))
+        queue_info.put(info)
+        # print(info)
+    def run(self):
+        while True:
+            self.calc_for_all_userdata()
 
 class Write_info():
     def __init__(self, outfile):
-        self.info = queue_info.get()
-        self.write_info_to_file()
+        self.run()
 
     def write_info_to_file(self):
-        with open(outfile, "w") as file:
-            writer = csv.writer(file)
-            writer.writerows(self.info)
+        try:
+            info = queue_info.get()
+        except Exception as e:
+            print(e + "get write info end!")
 
+        # if len(info) <= 0:
+        #     continue
+        # else:
+        # print(info)
+        with open(outfile, "a") as file:
+            writer = csv.writer(file)
+            writer.writerow(info)
+
+    def run(self):
+        while True:
+            self.write_info_to_file()
 
 if __name__ == "__main__":
     args = Args(sys.argv[1:])
@@ -135,9 +152,9 @@ if __name__ == "__main__":
     cfg = Config(configfile)
     config = cfg.config
 
-    P_config = Process(target=Config, args=(configfile, )).start()
     P_userdata = Process(target=UserData, args=(userdata,)).start()
     P_income = Process(target=IncomeTaxCalculator, args=(config, )).start()
     P_write_info = Process(target=Write_info, args=(outfile, )).start()
+
 
 
