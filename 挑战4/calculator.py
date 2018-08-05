@@ -4,7 +4,6 @@ import csv
 import sys
 from multiprocessing import Process, Queue
 
-
 queue_userdata = Queue()
 queue_info = Queue()
 
