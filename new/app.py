@@ -45,18 +45,18 @@ def index():
 @app.route('/file/<filename>')
 def file(filename):
 	file_dir = "/Users/lijunjiang/shiyanlou/shiyanlou/new/file"
-	get_file = os.path.join(file_dir, filename)
+	get_file = os.path.join(file_dir, filename) + ".json"
 	if os.path.exists(get_file):
 		with open(get_file) as f:
 			try:
 				data = json.loads(f.read())
-			except:
+			except Exception as e:
 				print(e)
 			
 			return render_template('file.html', data=data)
 	else:
 		abort(404)
 
-	
-	
 
+if __name__ == "__mail__":
+	app.run()

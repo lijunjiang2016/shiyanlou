@@ -1,7 +1,13 @@
-<div>
-	<p>{{ data.title }} </p>
-</div>
+{%	extends "base.html" %}
+{% block header %}
+	<div>
+		<p>"title": "{{ data.title }}"" </p>
+	</div>
+{% endblock%}
 
-<div>
-	<span>{{ data.content }}</span>
-</div>
+{% block content %}
+	<div>
+		<p>"created_time": "{{ data.created_time}}"</p>
+		<p>"content": "{{ data.content }}"</p>
+	</div>
+{% endblock %}
