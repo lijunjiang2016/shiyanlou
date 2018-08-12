@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Table, Text
 from sqlalchemy.ext.declarative import declarative_base  # 声明基类的创建类
 from sqlalchemy.orm import relationship, sessionmaker
 
@@ -81,3 +81,33 @@ session = Session()
 
 #session.add(lab1)
 #session.commit()
+
+#############
+'''
+    1:1 和 M：M的关系建立
+'''
+
+# 1:1
+class UserInfo(Base):
+    __tablename__ = 'userinfo'
+    user_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
+    addr = Column(String(512))
+
+
+Base.metadata.create_all(engine)
+
+course_tag = Table('course_tag', Base.metadata,
+                    Column('course_id', ForeignKey('course.id'), primary_key=True),
+                    Column('tag_id', ForeignKey('tag.id'), primary_key=True)
+                )
+
+class Tag(Base):
+    __tablename__ = 'tag'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(64))
+    course = relationship("course", secondary=course_tag, backref='tag')
+    def __repr__(self):
+        return '<Tag(name=%s)>' % self.name
+
+Base.metadata.create_all(engine)
+
